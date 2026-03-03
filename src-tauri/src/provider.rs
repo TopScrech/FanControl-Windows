@@ -226,6 +226,7 @@ impl HardwareProvider for MockProvider {
 #[cfg(target_os = "windows")]
 struct LibreHardwareMonitorProvider {
     state: Mutex<WindowsProviderState>,
+    namespace: String,
 }
 
 #[cfg(target_os = "windows")]
@@ -259,14 +260,17 @@ struct LhmTemperatureSensor {
 #[cfg(target_os = "windows")]
 impl LibreHardwareMonitorProvider {
     async fn try_new() -> Result<Self, String> {
+        let namespace = Self::detect_namespace().await?;
+
         let provider = Self {
             state: Mutex::new(WindowsProviderState::default()),
+            namespace,
         };
 
         let fans = provider.read_fan_sensors().await?;
         if fans.is_empty() {
             return Err(
-                "No fan sensors found in root\\LibreHardwareMonitor namespace\nMake sure LibreHardwareMonitor is running with WMI enabled"
+                "No fan sensors found in hardware monitor WMI namespace\nMake sure LibreHardwareMonitor or OpenHardwareMonitor is running with WMI enabled"
                     .to_string(),
             );
         }
@@ -274,10 +278,31 @@ impl LibreHardwareMonitorProvider {
         Ok(provider)
     }
 
+    async fn detect_namespace() -> Result<String, String> {
+        let script = r#"
+$ErrorActionPreference='Stop'
+$namespaces = Get-CimInstance -Namespace root -ClassName __NAMESPACE | Select-Object -ExpandProperty Name
+if ($namespaces -contains 'LibreHardwareMonitor') {
+  'root\LibreHardwareMonitor'
+} elseif ($namespaces -contains 'OpenHardwareMonitor') {
+  'root\OpenHardwareMonitor'
+} else {
+  throw 'No hardware monitor WMI namespace found under root'
+}
+"#;
+
+        run_powershell(script).await.map_err(|error| {
+            format!(
+                "{}\nInstall and launch LibreHardwareMonitor (or OpenHardwareMonitor) and ensure WMI is exposed",
+                error
+            )
+        })
+    }
+
     async fn read_fan_sensors(&self) -> Result<Vec<LhmFanSensor>, String> {
         let script = r#"
 $ErrorActionPreference='Stop'
-Get-CimInstance -Namespace root\LibreHardwareMonitor -ClassName Sensor |
+Get-CimInstance -Namespace __NAMESPACE__ -ClassName Sensor |
 Where-Object { $_.SensorType -eq 'Fan' } |
 Sort-Object Identifier |
 ForEach-Object {
@@ -292,14 +317,15 @@ ForEach-Object {
 ConvertTo-Json -Depth 4 -Compress
 "#;
 
-        let output = run_powershell(script).await?;
+        let script = script.replace("__NAMESPACE__", &self.namespace);
+        let output = run_powershell(&script).await?;
         parse_json_vec::<LhmFanSensor>(&output)
     }
 
     async fn read_temperature_sensor_rows(&self) -> Result<Vec<LhmTemperatureSensor>, String> {
         let script = r#"
 $ErrorActionPreference='Stop'
-Get-CimInstance -Namespace root\LibreHardwareMonitor -ClassName Sensor |
+Get-CimInstance -Namespace __NAMESPACE__ -ClassName Sensor |
 Where-Object { $_.SensorType -eq 'Temperature' } |
 Sort-Object Identifier |
 ForEach-Object {
@@ -312,7 +338,8 @@ ForEach-Object {
 ConvertTo-Json -Depth 4 -Compress
 "#;
 
-        let output = run_powershell(script).await?;
+        let script = script.replace("__NAMESPACE__", &self.namespace);
+        let output = run_powershell(&script).await?;
         parse_json_vec::<LhmTemperatureSensor>(&output)
     }
 
@@ -326,7 +353,7 @@ $ErrorActionPreference='Stop'
 $fanIndex = {fan_id}
 $mode = {mode}
 $softwareValue = {software_value}
-$controls = @(Get-CimInstance -Namespace root\LibreHardwareMonitor -ClassName Control | Sort-Object Identifier)
+$controls = @(Get-CimInstance -Namespace __NAMESPACE__ -ClassName Control | Sort-Object Identifier)
 if ($controls.Count -le $fanIndex) {{
   throw "No fan control found for fan index $fanIndex"
 }}
@@ -345,6 +372,7 @@ Set-CimInstance -InputObject $control | Out-Null
 "#
         );
 
+        let script = script.replace("__NAMESPACE__", &self.namespace);
         run_powershell(&script).await.map(|_| ()).map_err(|error| {
             format!(
                 "Failed to set fan control via LibreHardwareMonitor\n{}\nIf this persists, verify your board exposes writable fan controls",
