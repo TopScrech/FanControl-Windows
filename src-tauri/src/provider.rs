@@ -277,7 +277,7 @@ impl LibreHardwareMonitorProvider {
     async fn read_fan_sensors(&self) -> Result<Vec<LhmFanSensor>, String> {
         let script = r#"
 $ErrorActionPreference='Stop'
-Get-CimInstance -Namespace root/LibreHardwareMonitor -ClassName Sensor |
+Get-CimInstance -Namespace root\LibreHardwareMonitor -ClassName Sensor |
 Where-Object { $_.SensorType -eq 'Fan' } |
 Sort-Object Identifier |
 ForEach-Object {
@@ -299,7 +299,7 @@ ConvertTo-Json -Depth 4 -Compress
     async fn read_temperature_sensor_rows(&self) -> Result<Vec<LhmTemperatureSensor>, String> {
         let script = r#"
 $ErrorActionPreference='Stop'
-Get-CimInstance -Namespace root/LibreHardwareMonitor -ClassName Sensor |
+Get-CimInstance -Namespace root\LibreHardwareMonitor -ClassName Sensor |
 Where-Object { $_.SensorType -eq 'Temperature' } |
 Sort-Object Identifier |
 ForEach-Object {
@@ -326,7 +326,7 @@ $ErrorActionPreference='Stop'
 $fanIndex = {fan_id}
 $mode = {mode}
 $softwareValue = {software_value}
-$controls = @(Get-CimInstance -Namespace root/LibreHardwareMonitor -ClassName Control | Sort-Object Identifier)
+$controls = @(Get-CimInstance -Namespace root\LibreHardwareMonitor -ClassName Control | Sort-Object Identifier)
 if ($controls.Count -le $fanIndex) {{
   throw "No fan control found for fan index $fanIndex"
 }}
