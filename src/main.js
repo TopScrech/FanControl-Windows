@@ -301,7 +301,7 @@ function render(snapshot) {
 function bindRuntimeHandlers() {
   document.getElementById("fan-select")?.addEventListener("change", async (event) => {
     const selectedFanId = Number(event.target.value)
-    await refreshSnapshot("set_selected_fan", { selected_fan_id: selectedFanId })
+    await refreshSnapshot("set_selected_fan", { selectedFanId })
   })
 
   document.getElementById("set-auto")?.addEventListener("click", async () => {
@@ -327,7 +327,7 @@ function bindRuntimeHandlers() {
 
     await refreshSnapshot("set_manual_rpm", {
       rpm: selectedPresetRpm,
-      target_mode: "preset",
+      targetMode: "preset",
     })
   })
 
