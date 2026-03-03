@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FanControl</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/main.js" defer></script>
+  </head>
+  <body>
+    <div class="background-layer"></div>
+    <main id="app"></main>
+
+    <dialog id="settings-dialog">
+      <form method="dialog" id="settings-form">
+        <header class="dialog-header">
+          <h2>Settings</h2>
+          <button id="close-settings" type="submit" class="icon-button" aria-label="Close settings">
+            ×
+          </button>
+        </header>
+
+        <section class="section-block">
+          <h3>Launch</h3>
+          <label class="toggle-row" for="launch-at-login">
+            <span>Launch at login</span>
+            <input id="launch-at-login" type="checkbox" />
+          </label>
+          <label class="toggle-row" for="hide-window-on-launch">
+            <span>Hide window on launch</span>
+            <input id="hide-window-on-launch" type="checkbox" />
+          </label>
+        </section>
+
+        <section class="section-block">
+          <h3>Temperature</h3>
+          <label class="field-grid" for="temperature-unit">
+            <span>Measurement unit</span>
+            <select id="temperature-unit">
+              <option value="celsius">Celsius</option>
+              <option value="fahrenheit">Fahrenheit</option>
+              <option value="kelvin">Kelvin</option>
+            </select>
+          </label>
+          <label class="field-grid" for="temperature-precision">
+            <span>Precision</span>
+            <select id="temperature-precision">
+              <option value="whole">Whole numbers</option>
+              <option value="tenths">Tenths</option>
+            </select>
+          </label>
+        </section>
+
+        <section class="section-block">
+          <h3>Debug</h3>
+          <p id="processor-name" class="mono-line"></p>
+          <p id="provider-name" class="mono-line"></p>
+          <div class="button-row">
+            <button id="copy-sensor-data" type="button" class="secondary-button">Copy all sensor data</button>
+            <button id="share-fancontrol" type="button" class="secondary-button">Share FanControl</button>
+          </div>
+        </section>
+      </form>
+    </dialog>
+  </body>
+</html>
